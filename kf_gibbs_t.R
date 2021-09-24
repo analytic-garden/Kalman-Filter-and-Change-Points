@@ -55,7 +55,8 @@ kf_gibbs_t <- function(df,
                     Temperature_Anomaly = df$Temperature_Anomaly,
                     omega_y = colMeans(d$omega_y[-(1:burnin), ]),
                     omega_theta = rowMeans(d$omega_theta[, 1, -(1:burnin)])) 
-  outliers <- which(df2$omega_theta <= cutoff)   # these are positions with large variance in predicted mean
+  outliers_y <- which(df2$omega_y <= cutoff)   # these are positions with large variance in predicted mean
+  outliers_theta <- which(df2$omega_theta <= cutoff)   
   
   if(save_states) {
     # get posterior mean and sd of the Kalman filter predictions and plot them
@@ -73,12 +74,16 @@ kf_gibbs_t <- function(df,
                       color = '+/- SD'),
                   fill = 'grey',
                   alpha = 0.4) +
-      geom_point(data = data.frame(Year = df2$Year[outliers], Temperature_Anomaly = df2$Temperature_Anomaly[outliers]),
-                 aes(x = Year, y = Temperature_Anomaly, color = 'Outliers')) +
+      geom_point(data = data.frame(Year = df2$Year[outliers_y], Temperature_Anomaly = df2$Temperature_Anomaly[outliers_y]),
+                 aes(x = Year, y = Temperature_Anomaly, color = 'Outliers Y')) +
+      geom_point(data = data.frame(Year = df2$Year[outliers_theta], Temperature_Anomaly = df2$Temperature_Anomaly[outliers_theta]),
+                 aes(x = Year, y = Temperature_Anomaly, color = 'Outliers Theta')) +
       ylab('Temperature Anomaly') +
       scale_colour_manual(name = '',
-                          labels = c('+/- SD', expression(paste('Outliers ', omega[theta])), 'Posterior Mean', 'Temperature Anomaly'),
-                          values = c('grey', 'red', 'seagreen', 'blue'))
+                          labels = c('+/- SD', 
+                                     expression(paste('Outliers ', omega[y])), expression(paste('Outliers ', omega[theta])),
+                                     'Posterior Mean', 'Temperature Anomaly'),
+                          values = c('grey', 'red', 'gold', 'seagreen', 'blue'))
     
     if(! is.null(title)) {
       p1 <- p1 + ggtitle(title)
@@ -91,6 +96,7 @@ kf_gibbs_t <- function(df,
   p2 <- ggplot(df2) +
     geom_point(aes(x = Year, y = omega_y)) +
     geom_hline(yintercept = 1) +
+    geom_hline(yintercept = cutoff, color = 'red') +
     ylab(expression(omega[y]))
   
   p3 <- ggplot(df2) +
@@ -105,7 +111,8 @@ kf_gibbs_t <- function(df,
   
   print(p4)
   
-  return(list(d = d, df2 = df2, outliers = outliers,
+  return(list(d = d, df2 = df2, 
+              outliers_y = outliers_y, outliers_theta = outliers_theta,
               params = list(mod = mod, A_y = A_y, B_y = B_y, A_theta = A_theta, B_theta = B_theta,
                             burnin = burnin, samples = samples, save_states = save_states, thin = thin,
                             cutoff = cutoff, title = title)))
